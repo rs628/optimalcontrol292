@@ -1,0 +1,4 @@
+SOURCE = \
+laplaceAdjointFoam2.C \
+
+# sources
