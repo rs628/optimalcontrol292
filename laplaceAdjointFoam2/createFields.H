@@ -47,7 +47,7 @@ volScalarField yd
 	runTime.timeName(),
 	mesh,
 	IOobject::MUST_READ,
-	IOobject::NO_WRITE
+	IOobject::AUTO_WRITE
     ),
     mesh
 );
@@ -157,31 +157,7 @@ volScalarField u
 scalarField volField = mesh.V();
 
 
-volScalarField uc
-(
-    IOobject
-    (
-	"uc",
-	runTime.timeName(),
-	mesh,
-	IOobject::NO_READ,
-	IOobject::AUTO_WRITE
-    ),
-    -(beta/lambda)*p
-);
 
-volScalarField udiff
-(
-    IOobject
-    (
-	"udiff",
-	runTime.timeName(),
-	mesh,
-	IOobject::NO_READ,
-	IOobject::AUTO_WRITE
-    ),
-    u - uc
-);
 
 volScalarField uk
 (
@@ -200,3 +176,28 @@ volScalarField uk
 wordList patchesToIntegrate(physicalProperties.lookup("boundaryPatchList"));
 
 
+volScalarField ud
+(
+    IOobject
+    (
+	"ud",
+	runTime.timeName(),
+	mesh,
+	IOobject::MUST_READ,
+	IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+volScalarField uDiff
+(
+    IOobject
+    (
+	"uDiff",
+	runTime.timeName(),
+	mesh,
+	IOobject::NO_READ,
+	IOobject::AUTO_WRITE
+    ),
+    mag(u - ud)
+);

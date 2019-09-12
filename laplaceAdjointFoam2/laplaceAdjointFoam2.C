@@ -48,12 +48,15 @@ int main(int argc, char *argv[])
     scalar J = 0;
     scalar Jold = 0;
     scalar Jk = 0;
+     scalar error = 0;
 
 // Compute cost function value
 #include "costFunctionValue.H"
 
-    std::ofstream file("results.csv");
+    std::ofstream file("cost.csv");
     file << 0 << "," << J << "," << 0 << nl;
+
+    std::ofstream errorFile("error.csv");
 
     while (runTime.loop() && fabs(J - Jold) > tol)
     {
@@ -61,28 +64,28 @@ int main(int argc, char *argv[])
         Jold = J;
 
         // Primal equation
-        solve(fvm::laplacian(k, y) -y +  beta*u + f);
+        solve(fvm::laplacian(k, y) - fvm::Sp(1.0, y) + beta * u + f);
 
         // Adjoint equation
-        solve(fvm::laplacian(k, p)-p + y - yd);
+        solve(fvm::laplacian(k, p) - fvm::Sp(1.0, p) + y - yd);
 
         // Save current control
         uk = u;
 
         // calculate current cost
-         #include "costFunctionValue.H"
-          Jk = J;
+#include "costFunctionValue.H"
+        Jk = J;
         bool alphaFound = false;
 
         // calculate derivative^2 integrate((lambda*u + beta*p)^2 dv). Why??
-        scalar phip0 = gSum(volField * Foam::pow( uk.internalField() +  p.internalField(), 2));
+        scalar phip0 = gSum(volField * Foam::pow(uk.internalField() + p.internalField(), 2));
 
-        while (!alphaFound)
+        while ((!alphaFound) && (alpha > tol))
         {
-            u = uk - alpha *(uk + beta * p);
+            u = uk - alpha * (uk + beta * p);
 
             // truncate u for constrained control set
-            forAll(u,i)
+            forAll(u, i)
             {
                 u[i] = min(u[i], uMax[i]);
                 u[i] = max(u[i], uMin[i]);
@@ -91,15 +94,15 @@ int main(int argc, char *argv[])
             u.correctBoundaryConditions();
 
             // get new y
-            solve(fvm::laplacian(k, y) -y + beta * u + f);
+            solve(fvm::laplacian(k, y) - fvm::Sp(1.0, y) + beta * u + f);
 
             // get new cost
-            
-        #include "costFunctionValue.H"
-  
+
+#include "costFunctionValue.H"
+
             if (J <= Jk - c1 * alpha * phip0)
             {
-                Info << "alpha found, alpha = " << alpha << ", J = "   << J << ", phip0" << phip0 << endl;
+                Info << "alpha found, alpha = " << alpha << ", J = " << J << ", phip0" << phip0 << endl;
 
                 alphaFound = true;
             }
@@ -108,19 +111,33 @@ int main(int argc, char *argv[])
                 Info << "alpha NOT found, alpha = " << alpha << endl;
                 alpha = c2 * alpha;
             }
-        Info << J<<endl; 
+            Info << J << endl;
         }
 
-        Info << "Iteration no. " << runTime.timeName() << " - "
+Info << "Iteration no. " << runTime.timeName() << " - "
              << "Cost value " << J
              << " - "
              << "Cost variation" << fabs(J - Jold) << endl;
 
+        file.open("cost.csv",std::ios::app);
         file << runTime.value() << "," << J << nl;
+        file.close();
 
-        uc = -(beta/lambda)*p;
-        udiff = u - uc;
+        // calculate the L2 norm of the error in control variables
+        error = Foam::sqrt(
+                            gSum(volField * (
+                                                Foam::pow(u.internalField() - ud.internalField(), 2)
+                                            )
+                                )
+            
+                        );
+        
+        errorFile.open("error.csv",std::ios::app);
+        errorFile << runTime.value() << "," << error << nl;
+        errorFile.close();
 
+        Info << "Iteration no. " << runTime.timeName() << " - " << "error " << error << endl;
+        uDiff = mag(u - ud);
         runTime.write();
     }
 
@@ -128,10 +145,11 @@ int main(int argc, char *argv[])
 
     runTime++;
     y.write();
+    yd.write();
     p.write();
     u.write();
-   // uc.write();
-    //udiff.write();
+    ud.write();
+    uDiff.write();
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -141,9 +159,8 @@ int main(int argc, char *argv[])
          << nl << endl;
 
     Info << "\nEnd\n"
-         << endl; 
+         << endl;
     return 0;
 }
-
 
 // ************************************************************************* //
