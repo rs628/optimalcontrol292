@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v1806                                 |
+|  \\    /   O peration     | Version:  v1812                                 |
 |   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -9,28 +9,12 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       polyBoundaryMesh;
+    class       regIOobject;
     location    "constant/polyMesh";
-    object      boundary;
+    object      pointZones;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-2
-(
-    backAndFront
-    {
-        type            empty;
-        physicalType    empty;
-        nFaces          20000;
-        startFace       19800;
-    }
-    dirichletBoundary
-    {
-        type            patch;
-        physicalType    patch;
-        nFaces          400;
-        startFace       39800;
-    }
-)
+0()
 
 // ************************************************************************* //
